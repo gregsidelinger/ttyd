@@ -5,9 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title>ttyd - Terminal</title>
     <link inline rel="icon" type="image/png" href="favicon.png">
-    <link inline href="node_modules/bulma/css/bulma.css">
-    <link inline href="node_modules/xterm/src/xterm.css">
-    <link inline href="css/app.css">
+    <link inline href="dist/bundle.css">
 </head>
 <body>
 	<div id="terminal-container"></div>
@@ -16,14 +14,9 @@
         <div class="modal-content">
             <div class="box">
                 <header id="header"></header>
-                <div id="file">
-                    <div><strong>Name: </strong><span id="name"></span></div>
-                    <div><strong>Size: </strong><span id="size"></span></div>
-                    <div><strong>Last modified: </strong><span id="mtime"></span></div>
-                    <div><strong>Mode: </strong><span id="mode"></span></div>
-                    <br>
-                    <div><strong>Files remaining: </strong><span id="files-remaining"></span></div>
-                    <div><strong>Bytes remaining: </strong><span id="bytes-remaining"></span></div>
+                <div id="status">
+                    <strong>Files remaining: </strong><span id="files-remaining"></span>,
+                    <strong>Bytes remaining: </strong><span id="bytes-remaining"></span>
                 </div>
                 <div id="choose" class="file has-name is-fullwidth">
                     <label class="file-label">
@@ -37,6 +30,7 @@
                     </label>
                 </div>
                 <div id="progress">
+                    <p id="file-name"></p>
                     <progress id="progress-bar" class="progress is-link" max="100"></progress>
                     <p id="progress-info">
                         <span id="bytes-received">-</span>/<span id="bytes-file">-</span> (<span id="percent-received"></span>)
@@ -48,6 +42,6 @@
         </div>
     </div>
 	<script src="auth_token.js"></script>
-	<script inline src="js/bundle.js"></script>
+	<script inline src="dist/bundle.js"></script>
 </body>
 </html>

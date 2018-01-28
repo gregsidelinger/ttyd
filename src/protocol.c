@@ -99,7 +99,8 @@ tty_client_remove(struct tty_client *client) {
 void
 tty_client_destroy(struct tty_client *client) {
     if (!client->running || client->pid <= 0)
-        return;
+        goto cleanup;
+
     client->running = false;
 
     // kill process and free resource
@@ -113,6 +114,7 @@ tty_client_destroy(struct tty_client *client) {
     lwsl_notice("process exited with code %d, pid: %d\n", status, client->pid);
     close(client->pty);
 
+cleanup:
     // free the buffer
     if (client->buffer != NULL)
         free(client->buffer);
@@ -170,7 +172,7 @@ thread_run_command(void *args) {
                             continue;
                         }
                         memset(client->pty_buffer, 0, sizeof(client->pty_buffer));
-                        client->pty_len = read(pty, client->pty_buffer, sizeof(client->pty_buffer));
+                        client->pty_len = read(pty, client->pty_buffer + LWS_PRE + 1, BUF_SIZE);
                         client->state = STATE_READY;
                         pthread_mutex_unlock(&client->mutex);
                         break;
@@ -188,6 +190,7 @@ callback_tty(struct lws *wsi, enum lws_callback_reasons reason,
              void *user, void *in, size_t len) {
     struct tty_client *client = (struct tty_client *) user;
     char buf[256];
+    size_t n = 0;
 
     switch (reason) {
         case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
@@ -255,31 +258,24 @@ callback_tty(struct lws *wsi, enum lws_callback_reasons reason,
                 return -1;
             }
 
-            {
-                size_t n = (size_t) client->pty_len + 1;
-                unsigned char message[LWS_PRE + n];
-                unsigned char *p = &message[LWS_PRE];
-                *p = OUTPUT;
-                memcpy(p + 1, client->pty_buffer, client->pty_len);
-                client->state = STATE_DONE;
-
-                if (lws_write(wsi, p, n, LWS_WRITE_BINARY) < n) {
-                    lwsl_err("write data to WS\n");
-                }
+            client->pty_buffer[LWS_PRE] = OUTPUT;
+            n = (size_t) (client->pty_len + 1);
+            if (lws_write(wsi, (unsigned char *) client->pty_buffer + LWS_PRE, n, LWS_WRITE_BINARY) < n) {
+                lwsl_err("write data to WS\n");
             }
+            client->state = STATE_DONE;
             break;
 
         case LWS_CALLBACK_RECEIVE:
             if (client->buffer == NULL) {
-                client->buffer = xmalloc(len + 1);
+                client->buffer = xmalloc(len);
                 client->len = len;
                 memcpy(client->buffer, in, len);
             } else {
-                client->buffer = xrealloc(client->buffer, client->len + len + 1);
+                client->buffer = xrealloc(client->buffer, client->len + len);
                 memcpy(client->buffer + client->len, in, len);
                 client->len += len;
             }
-            client->buffer[client->len] = '\0';
 
             const char command = client->buffer[0];
 
@@ -300,22 +296,11 @@ callback_tty(struct lws *wsi, enum lws_callback_reasons reason,
                         break;
                     if (server->readonly)
                         return 0;
-                    if (write(client->pty, client->buffer + 1, client->len - 1) < client->len - 1) {
-                        lwsl_err("write INPUT to pty\n");
+                    if (write(client->pty, client->buffer + 1, client->len - 1) == -1) {
+                        lwsl_err("write INPUT to pty: %d (%s)\n", errno, strerror(errno));
                         tty_client_remove(client);
                         lws_close_reason(wsi, LWS_CLOSE_STATUS_UNEXPECTED_CONDITION, NULL, 0);
                         return -1;
-                    }
-                    break;
-                case PING:
-                    {
-                        unsigned char c = PONG;
-                        if (lws_write(wsi, &c, 1, LWS_WRITE_BINARY) != 1) {
-                            lwsl_err("send PONG\n");
-                            tty_client_remove(client);
-                            lws_close_reason(wsi, LWS_CLOSE_STATUS_UNEXPECTED_CONDITION, NULL, 0);
-                            return -1;
-                        }
                     }
                     break;
                 case RESIZE_TERMINAL:

@@ -1,3 +1,12 @@
+@import "~bulma/sass/utilities/_all";
+@import "~bulma/sass/base/helpers";
+@import "~bulma/sass/elements/box";
+@import "~bulma/sass/elements/button";
+@import "~bulma/sass/elements/form";
+@import "~bulma/sass/elements/progress";
+@import "~bulma/sass/components/modal";
+@import "~xterm/src/xterm.css";
+
 html, body {
     height: 100%;
     min-height: 100%;
@@ -24,10 +33,19 @@ html, body {
 #modal header {
     font-weight: bold;
     text-align: center;
-    padding-bottom: 20px;
-    margin-bottom: 20px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
     border-bottom: 1px solid #ddd;
 
+}
+
+#status {
+    margin-top: 10px;
+    text-align: center;
+}
+
+#choose {
+    padding-top: 10px;
 }
 
 #choose .file-name {
@@ -35,13 +53,16 @@ html, body {
 }
 
 #progress {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px dashed #ddd;
+    padding-top: 10px;
+}
+
+#file-name {
+    background-color: #fafffd;
+    text-align: center;
 }
 
 #progress progress {
-    margin-bottom: 0.5rem;
+    margin: 10px 0;
 }
 
 #progress {
